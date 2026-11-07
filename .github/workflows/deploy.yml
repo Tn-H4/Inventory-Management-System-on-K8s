@@ -1,0 +1,67 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build Frontend
+        working-directory: frontend
+        env:
+          REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+          CI: false
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build Backend
+        working-directory: Backend
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend/build/*,Backend/target/Backend-0.0.1-SNAPSHOT.jar"
+          target: "/home/botuser/inventory-management/staging"
+
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Deploy backend
+            mv /home/botuser/inventory-management/staging/Backend/target/Backend-0.0.1-SNAPSHOT.jar /home/botuser/inventory-management/app.jar
+            
+            # Deploy frontend
+            sudo cp -r /home/botuser/inventory-management/staging/frontend/build/* /var/www/inventory/
+            sudo chown -R www-data:www-data /var/www/inventory
+            
+            # Restart Spring Boot
+            sudo systemctl restart inventoryapp
+            
+            # Cleanup
+            rm -rf /home/botuser/inventory-management/staging

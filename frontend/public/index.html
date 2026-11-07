@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1f5f89" />
+    <meta
+      name="description"
+      content="Inventory Management System - Track products, suppliers, and transactions with ease"
+    />
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Inventory Management System" />
+    <meta
+      property="og:description"
+      content="Professional warehouse and inventory management"
+    />
+    <meta property="og:type" content="website" />
+
+    <link
+      rel="preconnect"
+      href="https://inventory-management-production-6424.up.railway.app"
+      crossorigin
+    />
+    <link
+      rel="dns-prefetch"
+      href="https://inventory-management-production-6424.up.railway.app"
+    />
+
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <title>Inventory Management System</title>
+    <style>
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root">
+      <!-- Mobile sticky header that mirrors AppLayout mobile header; <h1> text is the LCP candidate -->
+      <div
+        style="
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          background: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        "
+      >
+        <div
+          style="
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: #e2e8f0;
+            animation: pulse 1.5s ease-in-out infinite;
+          "
+        ></div>
+        <h1
+          style="
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            font-family:
+              system-ui,
+              -apple-system,
+              sans-serif;
+          "
+        >
+          Inventory System
+        </h1>
+        <div
+          style="
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            animation: pulse 1.5s ease-in-out infinite;
+          "
+        ></div>
+      </div>
+
+      <!-- Page body that mirrors AppLayout main + ProductPage skeleton -->
+      <div
+        style="
+          background: #f1f5f9;
+          min-height: calc(100vh - 53px);
+          padding: 16px;
+        "
+      >
+        <div
+          style="background: #ffffff; border-radius: 16px; padding: 16px 20px"
+        >
+          <!-- Page heading row -->
+          <div
+            style="
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              margin-bottom: 24px;
+            "
+          >
+            <div>
+              <div
+                style="
+                  height: 28px;
+                  width: 100px;
+                  background: #e2e8f0;
+                  border-radius: 6px;
+                  margin-bottom: 8px;
+                  animation: pulse 1.5s ease-in-out infinite;
+                "
+              ></div>
+              <div
+                style="
+                  height: 14px;
+                  width: 160px;
+                  background: #e2e8f0;
+                  border-radius: 4px;
+                  animation: pulse 1.5s ease-in-out infinite;
+                "
+              ></div>
+            </div>
+            <div
+              style="
+                height: 40px;
+                width: 108px;
+                background: #e2e8f0;
+                border-radius: 10px;
+                animation: pulse 1.5s ease-in-out infinite;
+              "
+            ></div>
+          </div>
+
+          <!-- Search bar -->
+          <div
+            style="
+              height: 44px;
+              background: #f8fafc;
+              border: 2px solid #e2e8f0;
+              border-radius: 12px;
+              margin-bottom: 24px;
+              animation: pulse 1.5s ease-in-out infinite;
+            "
+          ></div>
+
+          <!-- Product card skeletons -->
+          <div style="display: grid; gap: 16px">
+            <div
+              style="
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                overflow: hidden;
+              "
+            >
+              <div
+                style="
+                  height: 192px;
+                  background: #e2e8f0;
+                  animation: pulse 1.5s ease-in-out infinite;
+                "
+              ></div>
+              <div style="padding: 16px">
+                <div
+                  style="
+                    height: 20px;
+                    width: 65%;
+                    background: #e2e8f0;
+                    border-radius: 4px;
+                    margin-bottom: 8px;
+                    animation: pulse 1.5s ease-in-out infinite;
+                  "
+                ></div>
+                <div
+                  style="
+                    height: 13px;
+                    width: 45%;
+                    background: #e2e8f0;
+                    border-radius: 4px;
+                    margin-bottom: 16px;
+                    animation: pulse 1.5s ease-in-out infinite;
+                  "
+                ></div>
+                <div style="display: flex; gap: 8px">
+                  <div
+                    style="
+                      flex: 1;
+                      height: 32px;
+                      background: #e2e8f0;
+                      border-radius: 8px;
+                      animation: pulse 1.5s ease-in-out infinite;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      width: 64px;
+                      height: 32px;
+                      background: #e2e8f0;
+                      border-radius: 8px;
+                      animation: pulse 1.5s ease-in-out infinite;
+                    "
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                overflow: hidden;
+              "
+            >
+              <div
+                style="
+                  height: 192px;
+                  background: #e2e8f0;
+                  animation: pulse 1.5s ease-in-out infinite;
+                "
+              ></div>
+              <div style="padding: 16px">
+                <div
+                  style="
+                    height: 20px;
+                    width: 55%;
+                    background: #e2e8f0;
+                    border-radius: 4px;
+                    margin-bottom: 8px;
+                    animation: pulse 1.5s ease-in-out infinite;
+                  "
+                ></div>
+                <div
+                  style="
+                    height: 13px;
+                    width: 40%;
+                    background: #e2e8f0;
+                    border-radius: 4px;
+                    margin-bottom: 16px;
+                    animation: pulse 1.5s ease-in-out infinite;
+                  "
+                ></div>
+                <div style="display: flex; gap: 8px">
+                  <div
+                    style="
+                      flex: 1;
+                      height: 32px;
+                      background: #e2e8f0;
+                      border-radius: 8px;
+                      animation: pulse 1.5s ease-in-out infinite;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      width: 64px;
+                      height: 32px;
+                      background: #e2e8f0;
+                      border-radius: 8px;
+                      animation: pulse 1.5s ease-in-out infinite;
+                    "
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

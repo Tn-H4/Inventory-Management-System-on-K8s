@@ -1,0 +1,91 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Spring Boot ###
+**/src/main/resources/application-local.properties
+**/src/main/resources/application-*.properties
+
+### macOS ###
+.DS_Store
+
+# dependencies
+/frontend/node_modules
+/frontend/.pnp
+/frontend/.pnp.js
+
+# testing
+/frontend/coverage
+
+# production
+/frontend/build
+
+# uploaded media
+/Backend/uploads
+/uploads
+/frontend/public/products
+
+# Agentic Files
+.claude
+frontend/.claude
+AGENTS.md
+CLAUDE.md
+
+# Sensitive Data File
+inventory_db_data.sql
+inventory_db_schema.sql
+
+# environment variables
+/.env
+/.env.local
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+/Backend/src/main/resources/application.properties
+/Backend/src/main/resources/application-*.properties
+
+/frontend/setup.ps1
+/frontend/setup.sh
+
+# logs
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/Backend/logs
+
+# migrations
+/migrations
+/database/migrations
+.mcp.json

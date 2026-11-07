@@ -1,0 +1,10 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# Keep local-only secrets out of Docker build context.
+src/main/resources/application.properties
+src/main/resources/application-local.properties
+src/main/resources/application-*.properties
+
+uploads/
+*.log
