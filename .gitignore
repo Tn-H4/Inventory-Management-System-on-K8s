@@ -85,6 +85,10 @@ inventory_db_schema.sql
 /frontend/yarn-error.log*
 /Backend/logs
 
+# Kubernetes local/production secrets (do not commit actual credentials)
+# k8s/01-secrets.yaml has safe placeholders; uncomment below if keeping local secrets untracked:
+# /k8s/01-secrets.local.yaml
+
 # migrations
 /migrations
 /database/migrations

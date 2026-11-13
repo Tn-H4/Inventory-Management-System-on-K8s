@@ -29,8 +29,10 @@ spec:
               echo "MySQL is up!"
       containers:
         - name: backend
-          image: ims-backend:latest
-          imagePullPolicy: Never  # Use locally-built image loaded into kind
+          # In GCP Artifact Registry: asia-southeast1-docker.pkg.dev/<YOUR_PROJECT_ID>/ims-repo/ims-backend:v1
+          # In local kind: ims-backend:latest
+          image: asia-southeast1-docker.pkg.dev/YOUR_PROJECT_ID/ims-repo/ims-backend:v1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5050
           env:

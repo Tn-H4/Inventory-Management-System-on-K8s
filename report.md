@@ -12,37 +12,49 @@ This application is **fully dynamic**:
 - State, inventory counts, audit records, and auth tokens are persisted and evaluated dynamically against a transactional relational database (MySQL 8.0).
 - Backend business logic, access control, and dynamic reports are processed in real-time by a Spring Boot application runtime.
 
+The application is deployed on **Google Kubernetes Engine (GKE)** and accessible over the public internet.
+
 ### 1.2 Architecture
-The system follows a multi-tier microservice-style containerized architecture deployed on Kubernetes:
+The system follows a multi-tier microservice-style containerized architecture deployed on Google Kubernetes Engine:
 
 ```
-[ User Browser ]
-       │ :30000 (NodePort)
-       ▼
-┌────────────────────────────────────────────────────────┐
-│  Kubernetes Worker Node (ims-cluster-worker)          │
-│                                                        │
-│  ┌─────────────────────────┐                           │
-│  │  Frontend Pod           │                           │
-│  │  • Nginx Alpine Server  │                           │
-│  │  • React 19 SPA Build   │                           │
-│  │  • Reverse Proxy (/api) │                           │
-│  └───────────┬─────────────┘                           │
-│              │ http://backend:5050                     │
-│              ▼                                         │
-│  ┌─────────────────────────┐                           │
-│  │  Backend Pod            │                           │
-│  │  • Spring Boot 3.3.5    │                           │
-│  │  • Java 21 LTS          │                           │
-│  │  • JWT Auth & Security  │                           │
-│  └───────────┬─────────────┘                           │
-│              │ jdbc:mysql://mysql:3306                 │
-│              ▼                                         │
-│  ┌─────────────────────────┐   ┌────────────────────┐  │
-│  │  Database Pod (mysql-0) │──▶│ PersistentVolume   │  │
-│  │  • MySQL 8.0 Engine     │   │ Claim (1Gi RWO)    │  │
-│  └─────────────────────────┘   └────────────────────┘  │
-└────────────────────────────────────────────────────────┘
+[ User Browser — Any Device, Anywhere ]
+       │ http://136.85.39.249 (Port 80)
+       ▼ (GCP LoadBalancer)
+┌──────────────────────────────────────────────────────────────────┐
+│  Google Kubernetes Engine (GKE) — asia-southeast1-a (Singapore)  │
+│                                                                  │
+│  ┌── Master Node (GKE-Managed Control Plane) ──────────────┐     │
+│  │  kube-apiserver · etcd · kube-scheduler                 │     │
+│  │  kube-controller-manager · cloud-controller-manager     │     │
+│  └─────────────────────────────────────────────────────────┘     │
+│                           │ Schedules pods                       │
+│                           ▼                                      │
+│  ┌── Worker Node (e2-standard-2, 2vCPU / 8GB RAM) ───────────┐   │
+│  │                                                           │   │
+│  │  ┌─────────────────────────┐                              │   │
+│  │  │  Frontend Pod           │                              │   │
+│  │  │  • Nginx Alpine Server  │                              │   │
+│  │  │  • React 19 SPA Build   │                              │   │
+│  │  │  • Reverse Proxy (/api) │                              │   │
+│  │  └───────────┬─────────────┘                              │   │
+│  │              │ http://backend:5050                        │   │
+│  │              ▼                                            │   │
+│  │  ┌─────────────────────────┐                              │   │
+│  │  │  Backend Pod            │                              │   │
+│  │  │  • Spring Boot 3.3.5    │                              │   │
+│  │  │  • Java 21 LTS          │                              │   │
+│  │  │  • JWT Auth & Security  │                              │   │
+│  │  └───────────┬─────────────┘                              │   │
+│  │              │ jdbc:mysql://mysql:3306                    │   │
+│  │              ▼                                            │   │
+│  │  ┌─────────────────────────┐   ┌────────────────────┐     │   │
+│  │  │  Database Pod (mysql-0) │──▶│ PersistentVolume   │     │   │
+│  │  │  • MySQL 8.0 Engine     │   │ (GCE Persistent    │     │   │
+│  │  │  • StatefulSet          │   │  Disk, 1Gi RWO)    │     │   │
+│  │  └─────────────────────────┘   └────────────────────┘     │   │
+│  └───────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 #### Core Components:
@@ -56,14 +68,15 @@ The system follows a multi-tier microservice-style containerized architecture de
    - Uses an init-container (`busybox`) to wait for database network availability prior to starting.
 3. **Database Tier (`mysql`)**:
    - Managed via a Kubernetes `StatefulSet` using the official `mysql:8.0` image.
-   - Bound to a `PersistentVolumeClaim` (`mysql-pvc`) to ensure data durability across pod restarts.
+   - Bound to a `PersistentVolumeClaim` (`mysql-pvc`) backed by a GCE Persistent Disk to ensure data durability across pod restarts.
    - Initialized via a Kubernetes `ConfigMap` (`mysql-init`) containing pre-configured schema tables and seed data.
 
 ### 1.3 Operation
 
 #### Inter-Service Communication
-- **Frontend ➔ Backend**: When users perform actions, React dispatches Axios requests to `/api/...`. Nginx intercepts these paths and reverse-proxies them internally to `http://backend:5050/api/` via CoreDNS service discovery.
-- **Backend ➔ Database**: The Spring Boot service connects to MySQL using JDBC over port `3306` (`jdbc:mysql://mysql:3306/inventory_db`).
+- **User ➔ Frontend**: Users access the application via a public IP address (`http://136.85.39.249`) assigned by the GCP LoadBalancer. No port numbers or VPN required.
+- **Frontend ➔ Backend**: When users perform actions, React dispatches Axios requests to `/api/...`. Nginx intercepts these paths and reverse-proxies them internally to `http://backend:5050/api/` via Kubernetes CoreDNS service discovery.
+- **Backend ➔ Database**: The Spring Boot service connects to MySQL using JDBC over port `3306` (`jdbc:mysql://mysql:3306/inventory_db`). This traffic stays entirely within the cluster's internal network.
 
 #### Docker Image Creation
 Both Docker images use multi-stage builds to minimize image sizes and enhance security:
@@ -74,80 +87,89 @@ Both Docker images use multi-stage builds to minimize image sizes and enhance se
   - *Stage 1 (Build)*: Uses `node:20-alpine`, installs NPM dependencies (`npm ci`), and creates an optimized static bundle (`npm run build`).
   - *Stage 2 (Runtime)*: Copies static production artifacts into `nginx:alpine` and mounts a custom reverse-proxy `nginx.conf`.
 
+Images are stored in **Google Artifact Registry** (`asia-southeast1-docker.pkg.dev/ims-k8s-project/ims-repo/`), allowing GKE worker nodes to pull them directly from Google's internal network.
+
 #### Master / Worker Node Communication
-The deployment runs on a 2-node **kind** (Kubernetes-in-Docker) cluster:
-- **Control-Plane (Master Node - `ims-cluster-control-plane`)**: Runs the Kubernetes Control Plane components: `kube-apiserver`, `etcd`, `kube-controller-manager`, and `kube-scheduler`.
-- **Worker Node (`ims-cluster-worker`)**: Runs `kubelet`, `containerd`, and `kube-proxy`.
+The deployment runs on **Google Kubernetes Engine (GKE)** with a managed control plane:
+- **Control-Plane (Master Node)**: Fully managed by Google. Runs `kube-apiserver`, `etcd`, `kube-controller-manager`, `kube-scheduler`, and `cloud-controller-manager`. Google handles its availability, scaling, and security patching automatically.
+- **Worker Node (`gke-ims-cluster-default-pool-*`)**: A GCE `e2-standard-2` VM (2 vCPU, 8 GB RAM) running Container-Optimized OS, `kubelet`, `containerd`, and `kube-proxy`.
 - **How they interact**:
-  1. `kubectl` applies manifests to the `kube-apiserver` running on the Master node.
-  2. The `kube-scheduler` assigns the pods (`mysql-0`, `backend`, `frontend`) to the Worker node based on resource availability.
-  3. The Worker node's `kubelet` receives the assignment, talks to `containerd` to run the containers, and configures overlay networking via CNI.
-  4. NodePort mapping forwards traffic from the host machine directly through the kind network bridge into the pods on the worker node.
+  1. `kubectl` or `gcloud` sends manifests to the `kube-apiserver` on the GKE-managed Master node.
+  2. The `kube-scheduler` assigns pods (`mysql-0`, `backend`, `frontend`) to the Worker node.
+  3. The Worker node's `kubelet` pulls images from Artifact Registry, talks to `containerd` to run the containers, and configures VPC-native networking.
+  4. The GCP Cloud LoadBalancer forwards external internet traffic (port 80) to the `frontend` Service running on the Worker node.
 
 ---
 
 ## II. Implementation
 
 ### 2.1 Topology
+- **Cloud Provider**: Google Cloud Platform (GCP)
 - **Cluster Name**: `ims-cluster`
-- **Kubernetes Version**: `v1.37.0`
+- **Cluster Type**: GKE Standard (Zonal)
+- **Region / Zone**: `asia-southeast1-a` (Singapore)
+- **Kubernetes Version**: `v1.36.4-gke.2046003`
 - **Nodes**:
-  - `ims-cluster-control-plane` (Role: `control-plane`, IP: `172.18.0.2`)
-  - `ims-cluster-worker` (Role: `<none>` / worker, IP: `172.18.0.3`)
-- **Port Mapping**:
-  - Host Port `30000` ➔ Worker NodePort `30000` (Frontend Nginx)
-  - Host Port `30050` ➔ Worker NodePort `30050` (Backend Spring Boot API)
+  - **Master (Control-Plane)**: GKE-managed (invisible to user, fully managed by Google)
+  - **Worker**: `gke-ims-cluster-default-pool-45013d5e-ffjl` (Machine Type: `e2-standard-2`, Internal IP: `10.148.0.3`, External IP: `34.124.249.190`)
+- **Image Registry**: `asia-southeast1-docker.pkg.dev/ims-k8s-project/ims-repo/`
+- **Public Access**: `http://136.85.39.249` (GCP LoadBalancer)
 
 ### 2.2 Installation
-Execution of deployment automation via `deploy-k8s.ps1` initializes the cluster, compiles container images, and mounts manifests into the namespace `ims`.
+Deployment was performed from a local Windows machine using `gcloud` CLI and `kubectl`. Docker images were built locally, pushed to Google Artifact Registry, and Kubernetes manifests were applied to the GKE cluster.
 
 ```
-[Installation Terminal Output]
-PS C:\Users\Admin\Downloads\inventory-management-master\inventory-management-master> kubectl get nodes -o wide
-NAME                        STATUS   ROLES           AGE   VERSION   INTERNAL-IP   CONTAINER-RUNTIME
-ims-cluster-control-plane   Ready    control-plane   1h    v1.37.0   172.18.0.2    containerd://2.3.4
-ims-cluster-worker          Ready    <none>          1h    v1.37.0   172.18.0.3    containerd://2.3.4
+[Cluster Nodes]
+PS C:\Users\Admin> kubectl get nodes -o wide
+NAME                                         STATUS   ROLES    AGE   VERSION               INTERNAL-IP   EXTERNAL-IP      OS-IMAGE                             KERNEL-VERSION     CONTAINER-RUNTIME
+gke-ims-cluster-default-pool-45013d5e-ffjl   Ready    <none>   97m   v1.36.4-gke.2046003   10.148.0.3    34.124.249.190   Container-Optimized OS from Google   6.12.105+ (amd64)  containerd://2.2.7
 ```
 
 > *(Placeholder: Insert screenshot here showing `kubectl get nodes` and `kubectl get pods -n ims` demonstrating all pods in `Running` status)*
 
 ### 2.3 Configuration
-#### Host Device Specifications
+#### Host Device Specifications (Deployment Machine)
 - **Device Name**: `LAPTOP-7M0AV8S0`
 - **Operating System**: Microsoft Windows 11 Home Single Language (Build 26100)
-- **Processor**: 12th Gen Intel(R) Core(TM) i5-12450HX (16 CPUs)
+- **Processor**: 12th Gen Intel(R) Core(TM) i5-12450HX
 - **Memory**: 12 GB RAM
 - **Container Engine**: Docker Desktop 28.3.3 (WSL2 Backend)
-- **Kubernetes Engine**: kind (v0.27.0) with client `kubectl` (v1.32.2)
+- **Cloud CLI**: Google Cloud SDK (`gcloud`) + `kubectl` (v1.32.2)
+
+#### Cloud Infrastructure
+- **GCP Project**: `ims-k8s-project`
+- **GKE Cluster**: `ims-cluster` (1 managed master + 1 worker node)
+- **Worker VM**: `e2-standard-2` (2 vCPU, 8 GB RAM, 30 GB disk)
+- **Container Registry**: Google Artifact Registry (`asia-southeast1`)
 
 #### Kubernetes Resources in `ims` Namespace:
 ```
 PS C:\Users\Admin> kubectl get pods,svc,pvc -n ims
 NAME                            READY   STATUS    RESTARTS   AGE
-pod/backend-65d4f8c74d-s426r    1/1     Running   0          25m
-pod/frontend-5d8cd987d4-mkfmz   1/1     Running   0          75m
-pod/mysql-0                     1/1     Running   0          75m
+pod/backend-d6bb9955-q7ctp      1/1     Running   0          11m
+pod/frontend-76cb9f4f94-cj287   1/1     Running   0          11m
+pod/mysql-0                     1/1     Running   0          12m
 
-NAME               TYPE        CLUSTER-IP     PORT(S)          AGE
-service/backend    NodePort    10.96.79.206   5050:30050/TCP   75m
-service/frontend   NodePort    10.96.122.20   80:30000/TCP     75m
-service/mysql      ClusterIP   10.96.55.242   3306/TCP         75m
+NAME               TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
+service/backend    NodePort       34.118.229.129   <none>          5050:30050/TCP   11m
+service/frontend   LoadBalancer   34.118.234.73    136.85.39.249   80:31646/TCP     11m
+service/mysql      ClusterIP      34.118.238.47    <none>          3306/TCP         12m
 
 NAME                              STATUS   VOLUME                                     CAPACITY   ACCESS MODES
-persistentvolumeclaim/mysql-pvc   Bound    pvc-d84b6df8-2a49-40ab-a148-3f525861b9b6   1Gi        RWO
+persistentvolumeclaim/mysql-pvc   Bound    pvc-6c21c6fd-f2ce-4bd9-b442-722b709840c9   1Gi        RWO
 ```
 
-> *(Placeholder: Insert screenshot here showing PowerShell running `kubectl get all -n ims` along with system info)*
+> *(Placeholder: Insert screenshot here showing the GKE console or PowerShell running `kubectl get all -n ims`)*
 
 ---
 
 ## III. Results
 
 ### 3.1 Scenario 1: Authentication and Session Creation
-- **Objective**: Verify that user login executes dynamically through Nginx reverse proxy to Spring Boot, checks credentials in MySQL, and receives a JWT token.
+- **Objective**: Verify that user login executes dynamically through the GCP LoadBalancer to Nginx reverse proxy to Spring Boot, checks credentials in MySQL, and receives a JWT token.
 - **Test User**: `admin@gmail.com`
 - **Result**:
-  - Request: `POST http://localhost:30000/api/auth/login`
+  - Request: `POST http://136.85.39.249/api/auth/login`
   - HTTP Status: `200 OK`
   - Response:
     ```json
@@ -163,7 +185,7 @@ persistentvolumeclaim/mysql-pvc   Bound    pvc-d84b6df8-2a49-40ab-a148-3f525861b
 
 ### 3.2 Scenario 2: Dynamic Dashboard Metrics Retrieval
 - **Objective**: Verify that secure data endpoints populate live statistics from MySQL.
-- **Request**: `GET http://localhost:30000/api/dashboard/stats` with `Authorization: Bearer <TOKEN>`
+- **Request**: `GET http://136.85.39.249/api/dashboard/stats` with `Authorization: Bearer <TOKEN>`
 - **Result**:
   - HTTP Status: `200 OK`
   - Financial, Inventory, and Alert data points query live database aggregates and display charts for Sales and Warehouse Utilization.
@@ -176,7 +198,17 @@ persistentvolumeclaim/mysql-pvc   Bound    pvc-d84b6df8-2a49-40ab-a148-3f525861b
 - **Result**:
   - Client dispatches API call to backend.
   - Backend performs transaction commit inside `mysql-0`.
-  - Changes persist to `mysql-pvc` across pod restarts and instantly reflect in UI tables.
+  - Changes persist to `mysql-pvc` (GCE Persistent Disk) across pod restarts and instantly reflect in UI tables.
 
 > *(Placeholder: Insert screenshot here of the Products list showing records loaded from the database)*
 
+### 3.4 Scenario 4: Public Internet Accessibility
+- **Objective**: Verify the application is accessible from any device connected to the internet without any software installation.
+- **Test**: A friend opens `http://136.85.39.249` on their phone or laptop browser.
+- **Result**:
+  - The login page loads immediately.
+  - Login with `admin@gmail.com` / `123456` succeeds.
+  - Dashboard, Products, Transactions all render with live data.
+- **Conclusion**: The GKE deployment is publicly accessible. No VPN, Docker, or Kubernetes knowledge is required to use the application.
+
+> *(Placeholder: Insert screenshot here of the app opened on a different device or phone browser)*

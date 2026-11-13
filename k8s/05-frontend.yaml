@@ -63,8 +63,10 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ims-frontend:latest
-          imagePullPolicy: Never  # Use locally-built image loaded into kind
+          # In GCP Artifact Registry: asia-southeast1-docker.pkg.dev/<YOUR_PROJECT_ID>/ims-repo/ims-frontend:v1
+          # In local kind: ims-frontend:latest
+          image: asia-southeast1-docker.pkg.dev/YOUR_PROJECT_ID/ims-repo/ims-frontend:v1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           volumeMounts:
@@ -101,11 +103,10 @@ metadata:
   name: frontend
   namespace: ims
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: frontend
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30000
 
